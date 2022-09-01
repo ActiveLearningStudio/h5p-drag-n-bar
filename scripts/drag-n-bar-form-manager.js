@@ -148,10 +148,20 @@
         // Create 'Preview' button
         const previewButton = createButton('preview', H5PEditor.t('core', 'previewButtonLabel'), function () {
           const params = window.parent.h5peditorCopy.getParams(true);
+          const contentId = window.parent.h5peditorCopy.contentId;
+          const brightcoveApiSettingId = window.parent.h5peditorCopy.brightcoveApiSettingId;
           let $mainForm = H5P.jQuery('.h5peditor-form.form-manager');
           hideOrDisplayEditorForm('hide', $mainForm);
           createPreviewContainer();
-          loadLibraryWithAllDependencies(parent.currentLibrary, params, renderPreview);
+          ns.loadJs('https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.21/lodash.min.js', function (err) {
+            if (err) {
+              console.error('Error while loading script', err);
+              return;
+            }
+            // to avoid editor and preview objects conflicts
+            const clonedParams = _.cloneDeep(params);
+            loadLibraryWithAllDependencies(parent.currentLibrary, clonedParams, contentId, brightcoveApiSettingId, renderPreview);
+          });
         });
 
         // Create 'Back to Edit' button
@@ -167,6 +177,9 @@
           previewButton.style.display = 'block';
           this.style.display = 'none';
         });
+
+        self.previewButton = previewButton;
+        self.backToEditButton = backToEditButton;
 
         backToEditButton.style.display = 'none';
         head.append(previewButton);
@@ -433,10 +446,16 @@
      * @param params
      * @param callback
      */
-    const loadLibraryWithAllDependencies = function (libraryName, params, callback) {
+    const loadLibraryWithAllDependencies = function (libraryName, params, contentId, brightcoveApiSettingId, callback) {
       // Load dependencies.
       let body = ns.libraryFromString(libraryName);
       body['parameters'] = JSON.stringify(params);
+      if(contentId) {
+        body['contentId'] = contentId;
+      }
+      if(brightcoveApiSettingId) {
+        body['brightcoveApiSettingId'] = brightcoveApiSettingId;
+      }
 
       let url = ns.getAjaxUrl('libraries/load-all-dependencies');
 
@@ -649,6 +668,10 @@
           hideElement(manager.footer);
         }
 
+        // show preview button
+        if(manager.previewButton) {
+          showElement(manager.previewButton);
+        }
         manager.formContainer.classList.add('root-form');
       }
 
@@ -825,6 +848,11 @@
       showElement(manager.formButtons);
       showElement(manager.footerFormButtons);
       showElement(manager.footer);
+
+      // hide preview button
+      if(manager.previewButton) {
+        hideElement(manager.previewButton);
+      }
 
       // Ensure footer is at the bottom of the form
       manager.formContainer.appendChild(manager.footer);
