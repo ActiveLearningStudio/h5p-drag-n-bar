@@ -586,7 +586,7 @@
     const renderPreview = function (library, params) {
       const previewContentElement = H5P.jQuery('.h5p-preview-wrapper > .preview-container > .preview-content');
       try {
-        H5P.newRunnable(
+        var instance = H5P.newRunnable(
             {
               library: library,
               params: params.params,
@@ -595,8 +595,15 @@
             undefined,
             previewContentElement,
             undefined,
-            undefined
+            {
+              standalone: true
+            }
         );
+        instance.contentId = H5P.createUUID();
+        H5PIntegration.contents = {};
+        H5PIntegration.contents['cid-' + instance.contentId] = {
+          'url': H5PIntegration.baseUrl + '/h5p/embed/' + instance.contentId
+        };
       } catch (e) {
         console.error(e);
       }
